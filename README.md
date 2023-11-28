@@ -356,3 +356,354 @@ WHERE DATE_TRUNC('year',registration_date) = '2017-01-01'
 GROUP BY DATE_TRUNC('week', registration_date),channel_name
 ORDER BY DATE_TRUNC('week', registration_date),channel_name;-->
 ![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/a7ed2b0c-a4d7-43aa-b12a-4b26c0420539)
+
+## Time to first order
+So far, we've only compared the number of customers who've made or didn't make a purchase. Now, we'd like to go deeper and analyze how much time customers take between registration and their first purchase. Check out the following query:
+
+SELECT
+  customer_id,
+  first_order_date - registration_date AS days_to_first_order
+FROM customers;
+Result:
+
+customer_id	days_to_first_order
+1	NULL
+2	10 days
+3	19 days
+4	NULL
+...	...
+In the second column, we created an interval end_date - start_date to calculate the interval between the user's registration and their first order.
+
+Exercise
+Show customers' emails and interval between their first purchase and the date of registration. Name the column difference.
+
+Observe how the database displays the difference between two dates.
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/9de8fd68-a8ce-476c-ada8-cb0d50f1fc48)
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/2b614d5a-2453-4264-b527-66a37dc1d68b)
+
+## Global average time to first order
+This is a good indicator of how long a typical customer takes to make the first purchase. Take a look:
+
+SELECT AVG(first_order_date - registration_date) AS avg_days_to_first_order
+FROM customers;
+
+All we had to do was use AVG() with an interval inside.
+
+Exercise
+Find the average time from registration to first order for each channel. Show two columns: channel_name and avg_days_to_first_order
+
+SELECT
+	AVG(first_order_date - registration_date) AS avg_days_to_first_order,
+    channel_name
+FROM customers cu
+JOIN channels ch
+ON ch.id= cu.channel_id
+GROUP BY  channel_name
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/42ab7f8d-a4dc-4dcc-a422-07f11c6e8a6e)
+
+## Average time to first order in weekly cohorts
+ Previously, we created a report showing conversion rates in weekly registration cohorts. In a similar way, we can create a report showing the average time from registration to first order in weekly registration cohorts. Take a look:
+
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  AVG(first_order_date - registration_date) AS avg_days_to_first_order
+FROM customers
+GROUP BY DATE_TRUNC('week', registration_date)
+ORDER BY DATE_TRUNC('week', registration_date);
+Result:
+
+week	avg_days_to_first_order
+2016-12-12 00:00:00	20 days
+2016-12-19 00:00:00	15 days 18:00:00
+2016-12-26 00:00:00	12 days 16:00:00
+...	...
+The report looks very similar to the previous one. Once again, we used an interval to group and order the rows by weekly registration cohorts. The only difference is the avg_days_to_first_order column.
+
+Exercise
+Calculate the average number of days that passed between registration and the first order in quarterly registration cohorts. Show the following columns: quarter and avg_days_to_first_order. Order the results by year and quarter.
+
+SELECT
+  DATE_TRUNC('quarter', registration_date) AS quarter,
+  AVG(first_order_date - registration_date) AS avg_days_to_first_order
+FROM customers
+GROUP BY DATE_TRUNC('quarter', registration_date)
+ORDER BY DATE_TRUNC('quarter', registration_date);
+
+## Average time to first order in weekly cohorts – exercise
+
+Create a report of the average time to first order for weekly registration cohorts from 2017 in each registration channel. Show the following columns: week, channel_name, and avg_days_to_first_order. Order the results by the week.
+<!SELECT
+	 DATE_TRUNC('week',registration_date) as week,
+     channel_name,
+	 AVG(first_order_date - registration_date) AS avg_days_to_first_order
+FROM customers cu
+JOIN channels ch
+ON ch.id= cu.channel_id
+WHERE DATE_TRUNC('year',registration_date) = '2017-01-01'
+GROUP BY  DATE_TRUNC('week',registration_date),channel_name
+ORDER BY DATE_TRUNC('week',registration_date),channel_name>
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/b6e7f83c-64de-44a6-87ad-935840fdb2a0)
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/4367ba67-3683-48a1-a337-a4e7f1f1ba34)
+
+## Filtering with intervals
+Very well done! Let's leave dates for a while, and use some intervals to filter our data. Take a look at this query:
+
+SELECT
+  full_name,
+  country,
+  last_order_date
+FROM customers
+WHERE first_order_date - registration_date <= INTERVAL '7' day
+For those who placed their first order within one week from registration, this query gets their names, countries, and when their last orders were placed.
+
+Exercise
+Let's practice filtering with intervals a bit. Find all customers who placed their first order within one month from registration, and their last order within three months from registration – let's see who's stopped ordering. For each customer show these columns: email, full_name, first_order_date, last_order_date.
+
+SELECT
+  email,
+  full_name,
+  first_order_date, 
+  last_order_date
+FROM customers
+WHERE first_order_date - registration_date <= INTERVAL '1' month AND
+	last_order_date - registration_date <= INTERVAL '3' month
+
+ ![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/ff50ef92-39a4-4b11-a898-26681e690f15)
+
+## Custom classifications
+Excellent! To create the last report type in this part, we'll first need to learn how to create our own classifications.
+
+Suppose we want to show each customer along with a custom category label. The label will indicate how long they took to make their first order.
+
+SELECT
+  customer_id,
+  registration_date,
+  first_order_date,
+  CASE
+    WHEN first_order_date IS NULL THEN 'no order'
+    WHEN first_order_date - registration_date <= INTERVAL '7'  day THEN '1 week'
+    WHEN first_order_date - registration_date <= INTERVAL '14' day THEN '2 weeks'
+    ELSE 'more than 2 weeks'
+  END AS time_to_first_order
+FROM customers;
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/f0a89dde-f314-4ccf-a939-27397112e170)
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/29a48d95-0f24-4239-885c-e8dd660b3343)
+
+The new part in this query is the last column named time_to_first_order. It uses an SQL concept known as CASE WHEN. It checks the expressions introduced after each WHEN keyword. When it finds the first true expression, the corresponding value in the THEN part is assigned to the specified field.
+
+In our query, we first check if the first_order_date column is NULL. If it is, we set the time_to_first_order value to 'no order'. If it isn't, we check if the period between registration and first purchase is equal to or less than 7 days. If it is, we set the time_to_first_order value to '1 week'. If it's not, we check the same period for equal to or less than 14 days (the value '2 weeks'). If this expression doesn't match either, we use the default value from the ELSE clause ('more than 2 weeks'). Note that each CASE WHEN expression must end with the word END.
+
+Exercise
+Our e-store has used three versions of the registration form:
+
+'ver1' – introduced when the e-store started.
+'ver2' – introduced on Mar 14, 2017.
+'ver3' – introduced on Jan 1, 2018.
+For each customer, select the customer_id, registration_date, and the form version the user filled in at the time of registration. Name this third column registration_form.
+
+SELECT
+  customer_id,
+  registration_date,
+  CASE
+    WHEN registration_date < '2017-03-14' THEN 'ver1'
+    WHEN registration_date < '2018-01-01' THEN 'ver2'
+    ELSE 'ver3'
+  END AS registration_form
+FROM customers;
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/7d4e7ec7-69f3-43a1-9dbb-b1d00b4977b6)
+
+## Multiple metrics in one query
+Well done! The CASE WHEN construction can also be used to show multiple metrics in a single query. Take a look:
+
+SELECT
+  COUNT(CASE
+    WHEN registration_date >= '2016-01-01'
+     AND registration_date <  '2017-01-01'
+    THEN customer_id
+  END) AS registrations_2016,
+  COUNT(CASE
+    WHEN registration_date >= '2017-01-01'
+     AND registration_date <  '2018-01-01'
+    THEN customer_id
+  END) AS registrations_2017
+FROM customers;
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/16e504b4-2a9a-4dc2-9922-5db7b3ca7e9f)
+
+We use COUNT() with a CASE WHEN inside. The purpose is to count only the users in each column who match the given criteria. For instance, the registrations_2016 column checks if the registration_date is in 2016. If it is, the customer_id is counted. If the condition isn't satisfied – and there is no alternative condition or ELSE part – CASE WHEN returns NULL and the customer isn't counted.
+
+**COUNT(CASE WHEN...) is a technique used to include multiple metrics in different columns of the same report.**
+
+**Exercise**: Show two metrics in two different columns:
+
+order_on_registration_date – the number of people who made their first order within one day from their registration date.
+order_after_registration_date – the number of people who made their first order after their registration date.
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/13adf759-6e11-49ab-be7f-d60d2e60525d)
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/94336efe-1ec6-4b84-949a-30e3803b2ffa)
+SELECT
+  COUNT(CASE
+    WHEN first_order_date - registration_date < INTERVAL '1' DAY
+    THEN customer_id
+  END) AS order_on_registration_date ,
+  COUNT(CASE
+    WHEN first_order_date - registration_date >= INTERVAL '1' DAY
+    THEN customer_id
+  END) AS order_after_registration_date
+FROM customers;
+
+## Conversion rate report
+Great! We now want to create a conversion chart. This report should show weekly registration cohorts in rows and the number of conversions (i.e., first purchases) within the first week, the second week, etc. We want the end report to look like this:
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/ff349b59-ec95-4e05-96f2-bdb702457e4e)
+
+Here's the query:
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/cab33fc3-0128-4bc4-8c28-6b515a5bad37)
+
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  COUNT(*) AS registered_count,
+  COUNT(CASE
+    WHEN first_order_id IS NULL
+    THEN customer_id
+    END) AS no_sale,
+  COUNT(CASE
+    WHEN first_order_date - registration_date <  INTERVAL '7' day
+    THEN customer_id
+    END) AS first_week,
+  COUNT(CASE
+    WHEN first_order_date - registration_date >= INTERVAL '7' day
+     AND first_order_date - registration_date <  INTERVAL '14' day
+    THEN customer_id
+    END) AS second_week,
+  COUNT(CASE
+    WHEN first_order_date - registration_date >= INTERVAL '14' day
+    THEN customer_id
+    END) AS after_second_week
+FROM customers
+GROUP BY DATE_TRUNC('week', registration_date)
+ORDER BY DATE_TRUNC('week', registration_date);
+As usual, we used the DATE_TRUNC() function to extract the year and week of registration. Note that we also used the COUNT(CASE WHEN...) technique – this way, we could include multiple metrics in a single report.
+
+Exercise
+Create a conversion chart for monthly registration cohorts. Show the following columns:
+
+month
+registered_count
+no_sale
+three_days – the number of customers who made a purchase within 3 days from registration.
+first_week – the number of customers who made a purchase during the first week but not within the first three days.
+after_first_week – the number of customers who made a purchase after the 7th day.
+Order the results by month. Be careful the case of column names and spaces in them.
+
+SELECT
+  DATE_TRUNC('month', registration_date) AS month,
+  COUNT(*) AS registered_count,
+  COUNT(CASE
+    WHEN first_order_id IS NULL
+    THEN customer_id
+    END) AS no_sale,
+  COUNT(CASE
+    WHEN first_order_date - registration_date < INTERVAL '3' day
+         THEN customer_id
+    END) AS three_days,
+  COUNT(CASE
+    WHEN first_order_date - registration_date >=  INTERVAL '3' day
+       AND first_order_date - registration_date <  INTERVAL '7' day
+    THEN customer_id
+    END) AS first_week,
+  
+  COUNT(CASE
+    WHEN first_order_date - registration_date >= INTERVAL '7' day
+    THEN customer_id
+    END) AS after_first_week
+FROM customers
+GROUP BY DATE_TRUNC('month', registration_date)
+ORDER BY DATE_TRUNC('month', registration_date);
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/2b1180c5-9255-4244-91cb-3c8c3f263afb)
+
+## Conversion rate report – exercise
+Nice work! Time for an additional exercise.
+
+Exercise
+Create a conversion chart for monthly registration cohorts from 2017 for each channel. Show the following columns:
+
+month – The registration month.
+channel_name – The registration channel.
+registered_count – The number of users registered.
+no_sale – The number of users who never made a purchase.
+one_week – The number of users who made a purchase within 7 days.
+after_one_week – The numbers of users who made a purchase after the first week.
+Order the results by month.
+
+SELECT
+  DATE_TRUNC('month', registration_date) AS month,
+  channel_name,
+  COUNT(*) AS registered_count,
+  COUNT(CASE
+    WHEN first_order_id IS NULL
+    THEN customer_id
+    END) AS no_sale,
+  COUNT(CASE
+    WHEN first_order_date - registration_date <  INTERVAL '7' day
+    THEN customer_id
+    END) AS one_week,
+  COUNT(CASE
+    WHEN first_order_date - registration_date >= INTERVAL '7' day
+    THEN customer_id
+    END) AS after_one_week
+FROM customers cu
+JOIN channels ch
+ON ch.id = cu.channel_id
+WHERE DATE_TRUNC('year', registration_date) = '2017-01-01'
+GROUP BY DATE_TRUNC('month', registration_date),channel_name
+ORDER BY DATE_TRUNC('month', registration_date),channel_name;
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/8bb35e1f-007d-4c52-969d-b2c8985bd343)
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/a0a1f7a5-981e-40c5-b7bf-c7aeaf1dbc22)
+
+## Summary
+Well done! It's time to wrap things up. Let's do a quick summary of what we've learned:
+
+Conversion rate is the count of customers that performed a specific desired action divided by the count of all customers.
+To calculate the ratio of all customers who ever placed an order to all registered customers, use:
+SELECT
+  ROUND(COUNT(first_order_id) / COUNT(*)::numeric, 2) AS conversion_rate
+FROM customers;
+To show conversion rates (as percentages) in weekly registration cohorts, use the DATE_TRUNC() function:
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  ROUND(COUNT(first_order_id) * 100.0 / COUNT(*), 2) AS conversion_rate
+FROM customers
+GROUP BY DATE_TRUNC('week', registration_date)
+ORDER BY DATE_TRUNC('week', registration_date);
+To calculate the time from registration to first order, use:
+SELECT
+  customer_id,
+  first_order_date - registration_date AS days_to_first_order
+FROM customers;
+To create a conversion chart, use multiple COUNT(CASE WHEN...) instances:
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  ...
+  COUNT(CASE
+    WHEN first_order_date - registration_date <  INTERVAL '7' day
+    THEN customer_id
+    END) AS one_week,
+  COUNT(CASE
+    WHEN first_order_date - registration_date >= INTERVAL '7' day
+     AND first_order_date - registration_date <  INTERVAL '14' day
+    THEN customer_id
+    END) AS two_weeks,
+  ...
+FROM customers
+GROUP BY DATE_TRUNC('week', registration_date)
+ORDER BY DATE_TRUNC('week', registration_date);
+
+**Exercise 1:** 
+Find the global average time that passed between the registration and the first order. Name the column avg_time_to_first_order.
+
+SELECT
+	AVG(first_order_date-registration_date) avg_time_to_first_order
+FROM customers
