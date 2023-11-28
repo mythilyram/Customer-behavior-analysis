@@ -667,10 +667,12 @@ ORDER BY DATE_TRUNC('month', registration_date),channel_name;
 Well done! It's time to wrap things up. Let's do a quick summary of what we've learned:
 
 Conversion rate is the count of customers that performed a specific desired action divided by the count of all customers.
+
 To calculate the ratio of all customers who ever placed an order to all registered customers, use:
 SELECT
   ROUND(COUNT(first_order_id) / COUNT(*)::numeric, 2) AS conversion_rate
 FROM customers;
+
 To show conversion rates (as percentages) in weekly registration cohorts, use the DATE_TRUNC() function:
 SELECT
   DATE_TRUNC('week', registration_date) AS week,
@@ -678,11 +680,13 @@ SELECT
 FROM customers
 GROUP BY DATE_TRUNC('week', registration_date)
 ORDER BY DATE_TRUNC('week', registration_date);
+
 To calculate the time from registration to first order, use:
 SELECT
   customer_id,
   first_order_date - registration_date AS days_to_first_order
 FROM customers;
+
 To create a conversion chart, use multiple COUNT(CASE WHEN...) instances:
 SELECT
   DATE_TRUNC('week', registration_date) AS week,
