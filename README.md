@@ -298,9 +298,61 @@ FROM customers;
 As you can see, we multiplied the numerator by 100.0 to get a percentage. **Note that 100.0 is a floating point number. Multiplying the numerator by 100.0 means the whole expression will use float division. That's why we didn't have to cast values to a different data type this time.**
 
 Exercise
-Modify the template which contains the code from the previous exercise, so that it shows the conversion rate as a percentage. Round it to two decimal places.
+1. Modify the template which contains the code from the previous exercise, so that it shows the conversion rate as a percentage. Round it to two decimal places.
 
 SELECT ROUND(COUNT(first_order_id) *100.0/ COUNT(*)::numeric, 2) AS conversion_rate
 FROM customers
 WHERE registration_date >= '2017-01-01'
   AND registration_date <  '2018-01-01';
+
+2. Find the conversion rate for each customer channel. Show the channel_name and conversion_rate columns. Display the conversion rates as percentages rounded to two decimal places.
+
+SELECT
+	ROUND(COUNT(first_order_id)*100.0/count(*),2) AS conversion_rate,
+    channel_name
+FROM customers cu
+JOIN channels ch
+ON ch.id= cu.channel_id
+GROUP BY  channel_name
+
+### Conversion rates in weekly cohorts
+ Global lifetime conversion rate is a useful indicator, but now we'd like to run a deeper analysis. We'd like to find the conversion rate for weekly registration cohorts. This way, we can analyze which weekly cohorts had the best conversion rates and compare them against the campaigns we ran at that time. Take a look:
+
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  ROUND(COUNT(first_order_id) * 100.0 / COUNT(*), 2) AS conversion_rate
+FROM customers
+GROUP BY DATE_TRUNC('week', registration_date)
+ORDER BY DATE_TRUNC('week', registration_date);
+Result:
+
+week	conversion_rate
+...
+2017-01-02 00:00:00	81.82
+2017-01-09 00:00:00	83.33
+2017-01-16 00:00:00	60.00
+2017-01-23 00:00:00	66.67
+...
+We used the DATE_TRUNC('period', column) function to extract the year and the week from the registration_date column. We included this column in three places: the SELECT, GROUP BY, and ORDER BY clauses. This way, we can compare conversion rates for all weeks in chronological order.
+
+**Exercise**: 
+Create a similar report showing conversion rates in monthly cohorts. Display the conversion rates as ratios (not percentages) rounded to three decimal places. Show the following columns: month and conversion_rate. Order the results by month.
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/4b9b11bc-2805-44a6-8851-92a26ec173d0)
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/b2013beb-2b6a-4a44-aa8d-8cc2700eb75a)
+
+
+### Conversion rates in weekly cohorts – exercise
+
+**Exercise:** Create a report containing the conversion rates for weekly registration cohorts in each registration channel, based on customers registered in 2017. Show the following columns: week, channel_name, and conversion_rate. Format the conversion rates as percentages, rounded to a single decimal place. Order the results by week and channel name.
+
+<!--SELECT
+  DATE_TRUNC('week', registration_date) AS week,  
+  channel_name,
+  ROUND(COUNT(first_order_id) * 100.0 / COUNT(*), 1) AS conversion_rate
+FROM customers cu
+JOIN channels ch
+ON ch.id= cu.channel_id
+WHERE DATE_TRUNC('year',registration_date) = '2017-01-01' 
+GROUP BY DATE_TRUNC('week', registration_date),channel_name
+ORDER BY DATE_TRUNC('week', registration_date),channel_name;-->
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/a7ed2b0c-a4d7-43aa-b12a-4b26c0420539)
