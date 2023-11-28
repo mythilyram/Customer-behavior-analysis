@@ -127,13 +127,13 @@ Note that we also added an ORDER BY clause to make sure the registration count v
 Exercise
 Create a report containing the 2017 monthly registration counts. Show the registration_month and registration_count columns. Order the results by month.
 ![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/b1c53448-9db6-484e-9e28-56b26646fa16)
-<!select date_trunc('month',registration_date) as registration_month,
+<!--select date_trunc('month',registration_date) as registration_month,
 count(customer_id) as registration_count
 from customers
 where date_trunc('year',registration_date) >= '2017-01-01' AND 
 	date_trunc('year',registration_date) < '2018-01-01'
 group by date_trunc('month',registration_date)
-order by date_trunc('month',registration_date)>
+order by date_trunc('month',registration_date)-->
 
 ### Registration over time report – exercise
 Good job! We can also create a more advanced version of this report by choosing a different grouping method. For instance, suppose we need to find the registration count for each quarter of each year. This will allow us to compare values for the same quarter across different years.
@@ -162,7 +162,7 @@ Find the registration count for each month in each year. Show the following colu
   COUNT(customer_id) AS registration_count
 FROM customers
 GROUP BY DATE_TRUNC('month', registration_date)
-ORDER BY DATE_TRUNC('month', registration_date);>
+ORDER BY DATE_TRUNC('month', registration_date);-->
 
 ## **Customer cohorts**
 A customer cohort is **a group of customers that share a common characteristic over a certain time period.** For instance, a group of customers that registered in a certain week can be a weekly registration cohort. Cohorts are often used when creating reports related to customer behavior.
@@ -433,7 +433,7 @@ ORDER BY DATE_TRUNC('quarter', registration_date);
 ## Average time to first order in weekly cohorts – exercise
 
 Create a report of the average time to first order for weekly registration cohorts from 2017 in each registration channel. Show the following columns: week, channel_name, and avg_days_to_first_order. Order the results by the week.
-<!SELECT
+<!--SELECT
 	 DATE_TRUNC('week',registration_date) as week,
      channel_name,
 	 AVG(first_order_date - registration_date) AS avg_days_to_first_order
@@ -442,7 +442,7 @@ JOIN channels ch
 ON ch.id= cu.channel_id
 WHERE DATE_TRUNC('year',registration_date) = '2017-01-01'
 GROUP BY  DATE_TRUNC('week',registration_date),channel_name
-ORDER BY DATE_TRUNC('week',registration_date),channel_name>
+ORDER BY DATE_TRUNC('week',registration_date),channel_name-->
 ![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/b6e7f83c-64de-44a6-87ad-935840fdb2a0)
 ![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/4367ba67-3683-48a1-a337-a4e7f1f1ba34)
 
