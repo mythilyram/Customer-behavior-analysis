@@ -669,26 +669,32 @@ Well done! It's time to wrap things up. Let's do a quick summary of what we've l
 Conversion rate is the count of customers that performed a specific desired action divided by the count of all customers.
 
 To calculate the ratio of all customers who ever placed an order to all registered customers, use:
-SELECT
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/af9b923e-90b4-48b3-a1e1-9466ad7ce14a)
+**COUNT(*)::numeric is required to change it to float division. Otherwise,  it does integer division.**
+<!SELECT
   ROUND(COUNT(first_order_id) / COUNT(*)::numeric, 2) AS conversion_rate
-FROM customers;
+FROM customers;>
 
 To show conversion rates (as percentages) in weekly registration cohorts, use the DATE_TRUNC() function:
-SELECT
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/6bf991e2-f369-4692-8cce-f041387960b8)
+**::numeric is not needed if we use 100.0 as '.0' denotes its a float type**
+<!SELECT
   DATE_TRUNC('week', registration_date) AS week,
   ROUND(COUNT(first_order_id) * 100.0 / COUNT(*), 2) AS conversion_rate
 FROM customers
 GROUP BY DATE_TRUNC('week', registration_date)
-ORDER BY DATE_TRUNC('week', registration_date);
+ORDER BY DATE_TRUNC('week', registration_date);>
 
 To calculate the time from registration to first order, use:
-SELECT
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/5dcb22b2-22d9-4a9a-b287-afa403c83d0f)
+<!SELECT
   customer_id,
   first_order_date - registration_date AS days_to_first_order
-FROM customers;
+FROM customers;>
 
 To create a conversion chart, use multiple COUNT(CASE WHEN...) instances:
-SELECT
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/6fb5c531-e5ac-4960-8dea-e02fa39da52b)
+<!--SELECT
   DATE_TRUNC('week', registration_date) AS week,
   ...
   COUNT(CASE
@@ -703,7 +709,7 @@ SELECT
   ...
 FROM customers
 GROUP BY DATE_TRUNC('week', registration_date)
-ORDER BY DATE_TRUNC('week', registration_date);
+ORDER BY DATE_TRUNC('week', registration_date);-->
 
 **Exercise 1:** 
 Find the global average time that passed between the registration and the first order. Name the column avg_time_to_first_order.
@@ -711,3 +717,152 @@ Find the global average time that passed between the registration and the first 
 SELECT
 	AVG(first_order_date-registration_date) avg_time_to_first_order
 FROM customers
+
+**Exercise 2:**
+
+Create a report with conversion rates in weekly cohorts. Show the following columns: week, and conversion_rate. Show the conversion rates as percentages, rounded to two decimal places. Order the results by year and week.
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/159918a1-144a-4f4f-ab64-854ac0ff7990)
+
+# Customer activity 
+
+First, we'll look at active customers. We'll learn how to count the number of active customers – in total and in registration cohorts. Then we'll determine the average value of customer orders. Finally, we'll define "good customers" and see if they have any common characteristics that we can use in our marketing campaigns.
+
+### The orders table
+Before we dive into our new report types, let's take a look at the tables we'll query. First, there's the orders table. It keeps track of all orders placed in our e-store. Let's examine some of its rows.
+
+The customers table – recap
+Good! The other table we'll need in this part is customers. We've used it before, but this time we'll especially need the last_order_date column.
+
+Exercise
+Count the number of customers who placed their most recent order in 2018. Name the column: count_2018_customers.
+
+SELECT COUNT(*) AS count_2018_customers
+
+FROM customers
+
+WHERE DATE_TRUNC('year',last_order_date) ='2018-01-01'
+
+### Number of active customers
+Good! Now let's dig into some customer activity analysis. 
+
+- The number of active customers is an important metric in any business, especially in businesses offering their products or services online.
+- Sometimes it's easy to say who is an active customer: for a subscription service, someone with an active subscription is an active user, for a mobile app someone who has the app installed and uses it once a week is an active user, etc.
+- For an e-store, the definition of an "active customer" is not as straightforward. There are some customers who place orders every now and then, but there are also some who haven't been active for a long time.
+- In our online supermarket, regular customers typically place one order a week, but we'll define "active customers" as all customers who've placed an order within the last 30 days.
+
+  Let's count how many active customers we have:
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/5da0c5aa-9f70-483d-ab9d-d5c3de235ec2)
+
+SELECT COUNT(*) AS active_customers
+FROM customers
+WHERE CURRENT_DATE - last_order_date < INTERVAL '30' day;
+
+In the WHERE clause, we created an interval: we subtracted last_order_date from CURRENT_DATE. This lets us check if the given customer's most recent order was within the last 30 days (by comparing the difference to the INTERVAL '30' day).
+
+**Exercise** 
+Find the number of active customers in each country. Show two columns: country and active_customers (number of those who have placed an order within the last 30 days). Do you see any major differences between countries?
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/a8f87627-f928-4e37-8368-b5d60446e33d)
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/52eb7973-4d00-4d35-9742-1faaae6d1652)
+
+### Number of active customers in time-period cohorts
+Perfect! The general number of active customers is a good start, but now we'd like **to see how many active customers there are in each weekly registration cohort**. We can then compare these numbers against the registration campaigns we ran each week and see which marketing activities yielded the greatest number of active customers. Take a look:
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/a8869fc1-275d-4a47-b7d3-d931934133f2)
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  COUNT(*) AS active_customers
+FROM customers
+WHERE CURRENT_DATE - last_order_date < INTERVAL '30' day
+GROUP BY DATE_TRUNC('week', registration_date)
+ORDER BY DATE_TRUNC('week', registration_date);
+
+Compared to the previous report, we added one DATE_TRUNC() invocation (to extract years and weeks) in three places (in SELECT, GROUP BY, and ORDER BY clauses). This shows us the number of active customers in each cohort.
+
+**Exercise** 
+Find the number of active customers (those who placed an order within the last 30 days) that registered in 2017. Use monthly registration cohorts and show two columns: month and active_customers. Order the rows by month.
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/65b6f500-f95f-47d4-8b06-90b67b524be5)
+
+**Exercise** 
+Find the number of active customers in quarterly registration cohorts. Active customers are customers who've made a purchase in the last 14 days. Show two columns: quarter, and active_customers. Order the rows by quarter.
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/15aa3245-c8d1-401c-a4f2-023847ba8e0c)
+
+
+### Average order value 
+Great! Knowing which customers are active is important, but **it's equally important to understand how much revenue our customers generate**. We now want to know the average order value for each weekly registration cohort. Check it out:
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/6dc11ef1-c82a-45c3-98f8-539b7b3cfc63)
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  AVG(total_amount) AS average_order_value
+FROM customers c
+JOIN orders o
+  ON c.customer_id = o.customer_id
+GROUP BY DATE_TRUNC('week', registration_date)
+ORDER BY DATE_TRUNC('week', registration_date);
+
+In the query above, we need data from two tables: customers (to get registration dates) and orders (to get the total amount for each order). Then, we used AVG(total_amount) to calculate the average order value.
+
+Exercise
+What was the average order value for weekly registration cohorts from 2017 for orders shipped to Germany? Show two columns: week and average_order_value, and order the results by week in descending order.
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/8efbc16e-cfe2-402b-b328-025c450374b9)
+
+### Average order values
+Well done! Now, let's analyze our e-store's "good customers." Each business will use its own definition of a good customer that is based on its business model. **In our e-store, we'll define a "good customer" as a customer whose average order value is above the general average order value for all customers.** Analyzing such customers may help us understand what makes customers spend more. This, in turn, can help us decide which marketing campaigns we should focus on.
+
+First, we need to see the average order value for each individual customer:
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/7c17b8f1-1916-4b15-9886-abc334c5ef5d)
+
+SELECT
+  c.customer_id,
+  AVG(total_amount) AS avg_order_value
+FROM customers c
+JOIN orders o
+  ON c.customer_id = o.customer_id
+GROUP BY c.customer_id
+ORDER BY AVG(total_amount);
+
+The query is quite straightforward: we join the tables customers and orders so that we can calculate AVG(total_amount) and get some additional information about the customer.
+
+**Exercise** 
+Run the query from the template and analyze the results. What do you think about them? Look at the differences between customers. Are their average values similar or completely different? Why do you think this is?
+
+### Average order value per customer
+Good job! In the previous report, we could see the average order value for each customer. We're looking for good customers, so we want to know the general average order values, aggregated over all customers. Here's the query:
+
+WITH average_per_customer AS (
+  SELECT
+    c.customer_id,
+    AVG(total_amount) AS avg_order_value
+  FROM customers c
+  JOIN orders o
+    ON c.customer_id = o.customer_id
+  GROUP BY c.customer_id
+)
+
+SELECT AVG(avg_order_value) AS global_avg_order_value
+FROM average_per_customer;
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/f6e6564a-1e09-4d5f-bc5a-e51eac8f8b00)
+
+In the query above, we use a concept known as **a CTE (Common Table Expression)**. It works like a temporary table and has its own name (average_per_customer in this case) which we can use later in the outer query. 
+
+A CTE is introduced before the main query in the following way: WITH cte_name AS (). Inside the parentheses, we write the query we need. Remember to provide column aliases with the keyword AS so that you can refer to them in the outer query. In this case, the inner query is very similar to our previous report: for each customer, it calculates the average order value for this customer.
+
+After the closing parenthesis, we write our outer query. Note that we put the CTE's name in the FROM clause. In this case, we simply calculate the average order value based on all customer-level averages calculated in the CTE.
+
+The result of the query is 1636.622.
+
+**Exercise** 
+Find each country's average order value per customer. Show two columns: country and avg_order_value. Sort the results by average order value, in ascending order.
+
+First, add the country column in the CTE. Then, use the column country in the outer query's GROUP BY.
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/0a5a2f75-7b25-4de3-bfb0-f71ab2095a1f)
+
+**Exercise** 
+Find out the average number of orders placed in the last 180 days by customers who have been active (made a purchase) in the last 30 days. Name the column avg_order_count.
+
+In the Common Table Expression determine the number of orders placed in the last 180 days by each active customer. Then, in the outer query determine the average.
