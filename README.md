@@ -1263,3 +1263,116 @@ FROM customers
 GROUP BY DATE_TRUNC('week', registration_date)
 ORDER BY DATE_TRUNC('week', registration_date);
 Okay, time for a short quiz!
+
+# Question 1
+Question 1 is all about customer acquisition.
+
+Exercise
+Create a report that compares the number of acquired customers in weekly registration cohorts across selected channels. Remember, this is during the first quarter of 2017. Show the following columns:
+
+registration_week
+direct_count (the number of customers from the 'Direct' channel in the given cohort).
+social_count (the number of customers from the 'Social' channel in the given cohort).
+referral_count (the number of customers from the 'Referral' channel in the given cohort).
+Order the results by week.
+SELECT
+	DATE_TRUNC('week',registration_date) AS registration_week,
+    COUNT(CASE WHEN channel_name = 'Direct' THEN customer_id END) AS direct_count,
+    COUNT(CASE WHEN channel_name = 'Social' THEN customer_id END) AS social_count,
+    COUNT(CASE WHEN channel_name = 'Referral' THEN customer_id END) AS referral_count
+FROM customers cu
+JOIN channels ch
+  ON cu.channel_id = ch.id
+WHERE registration_date BETWEEN '2017-01-01' AND '2017-04-01'
+GROUP BY DATE_TRUNC('week',registration_date)
+ORDER BY DATE_TRUNC('week',registration_date)
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/c1127d72-5c09-40f1-ba33-63f00c43b32c)
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/d3da6275-a291-4d49-b8ec-7887654d31a0)
+
+# Question 2
+Nice work! Let's move on to customer conversion.
+
+Exercise
+Create a conversion chart showing the 2017 Q1 monthly registration cohorts and the number of conversions (i.e., the number of customers who made their first purchase) in the first week, the first two weeks, and more than two weeks after registering. Show the following columns:
+
+month – the month of registration.
+no_sale – the number of customers who never placed an order.
+first_week – the number of customers who placed their first order within the first week.
+second_week – the number of customers who placed their first order within the second week.
+after_second_week – the number of customers who placed their first order after more than two weeks.
+Order the results by month.
+
+SELECT
+  DATE_TRUNC('month', registration_date) AS month,
+  COUNT(CASE WHEN first_order_id IS NULL THEN customer_id END) AS no_sale,
+  COUNT(CASE WHEN first_order_date - registration_date <  INTERVAL '7' day THEN customer_id END) AS first_week,
+  COUNT(CASE WHEN first_order_date - registration_date >= INTERVAL '7' day AND 
+                  first_order_date - registration_date <  INTERVAL '14' day THEN customer_id END) AS second_week,
+  COUNT(CASE WHEN first_order_date - registration_date >= INTERVAL '14' day THEN customer_id END) AS after_second_week
+FROM customers
+WHERE registration_date >= '2017-01-01' AND registration_date < '2017-04-01'
+GROUP BY DATE_TRUNC('month', registration_date)
+ORDER BY DATE_TRUNC('month', registration_date);
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/8bbd1dbf-32e3-410f-9b7d-df6f065f54d0)
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/5e19ca28-d924-409b-a98c-eaeb7cd412b0)
+
+# Question 3
+Good job! Now let's take a look at customer activity.
+
+Exercise
+Find the number of "good customers" in weekly signup cohorts from the first quarter of 2017. Define a good customer as one whose average total order amount was above $1450.00. Show the following columns:
+
+week – the week of registration.
+percent_of_good_customers – the percent of good customers.
+Order the results by week.
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/5762dc98-c7de-4cb1-948d-c24e3a710d40)
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/7d271fd5-0524-4c3d-b7d7-6091c52ee1b6)
+
+WITH average_total_amount AS (
+  SELECT
+    c.customer_id,
+    registration_date,
+    AVG(total_amount) AS average_total_amount
+  FROM customers c
+  JOIN orders o
+    ON c.customer_id = o.customer_id
+  WHERE registration_date >= '2017-01-01' AND registration_date < '2017-04-01'
+  GROUP BY c.customer_id, registration_date
+)
+
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  COUNT(CASE
+    WHEN average_total_amount > 1450
+    THEN average_total_amount
+  END) * 100.0 / COUNT(average_total_amount) AS percent_of_good_customers
+FROM average_total_amount
+GROUP BY DATE_TRUNC('week', registration_date)
+ORDER BY DATE_TRUNC('week', registration_date);
+
+# Question 4
+Great! In the last question, we'll ask you to create a customer retention chart.
+
+Exercise
+Create a customer retention chart for weekly signup cohorts from the third quarter of 2018. For each cohort, find the percentage of customers still active after 14 days, 30 days, and 60 days. Show the following columns:
+
+week
+active_after_14_days
+active_after_30_days
+active_after_60_days
+Sort the results by week.
+
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  COUNT(CASE WHEN last_order_date - registration_date > INTERVAL '14' day THEN customer_id END) * 100.0 / COUNT(customer_id) AS active_after_14_days,
+  COUNT(CASE WHEN last_order_date - registration_date > INTERVAL '30' day THEN customer_id END) * 100.0 / COUNT(customer_id) AS active_after_30_days,
+  COUNT(CASE WHEN last_order_date - registration_date > INTERVAL '60' day THEN customer_id END) * 100.0 / COUNT(customer_id) AS active_after_60_days
+FROM customers
+WHERE registration_date >= '2018-07-01' AND registration_date < '2018-10-01'
+GROUP BY DATE_TRUNC('week', registration_date)
+ORDER BY DATE_TRUNC('week', registration_date);
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/6d55f8dd-e4fd-425b-af88-bc6d2cbfeba1)
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/ad979c86-837d-47d3-a044-ea7fd52688cf)
