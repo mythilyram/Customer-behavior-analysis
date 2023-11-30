@@ -866,3 +866,400 @@ First, add the country column in the CTE. Then, use the column country in the ou
 Find out the average number of orders placed in the last 180 days by customers who have been active (made a purchase) in the last 30 days. Name the column avg_order_count.
 
 In the Common Table Expression determine the number of orders placed in the last 180 days by each active customer. Then, in the outer query determine the average.
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/01eb4bc9-48dd-4ca5-9bc2-fc4001997f1f)
+
+### Above-average order values
+Great! Now that we know the general average order value per customer (1636.622), we can use the value of 1636 to find good customers. Look at the query below:
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/9e45d144-78f6-4d6e-a475-f02c5566f395)
+
+SELECT
+  c.customer_id,
+  AVG(total_amount) AS avg_order_value
+FROM customers c
+JOIN orders o
+  ON c.customer_id = o.customer_id
+GROUP BY c.customer_id
+HAVING AVG(total_amount) > 1636;
+In the query, we simply showed each customer with their average order value. This time, however, we used a HAVING clause with the average value we calculated earlier. This will ensure that only customers above that threshold are included in the results.
+
+Exercise
+The average order value per customer in France is 1564.853 . Now, for each French customer with an average order value above that, show the following columns: customer_id, full_name, and avg_order_value. Order the results by average order value, in descending order.
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/9b963db4-12f6-4e32-a394-02fabb291b88)
+WITH CUSTOMER_ORDERS AS(
+SELECT
+	C.customer_id, 
+    full_name, 
+    AVG(total_amount) AS avg_order_value
+FROM customers c
+JOIN orders o
+  ON c.customer_id = o.customer_id
+WHERE country='France'
+GROUP BY c.customer_id,full_name
+)
+SELECT
+	customer_id, 
+    full_name, 
+    avg_order_value
+FROM CUSTOMER_ORDERS
+WHERE avg_order_value > 1564.853
+ORDER BY avg_order_value DESC
+
+### Good customers in weekly cohorts
+Excellent! In the previous step, we found "good customers" whose average order value is above our criteria. Now, we'd like to create a more generalized report that shows the number of good customers in each weekly registration cohort. Take a look:
+
+WITH good_customers AS (
+  SELECT
+    c.customer_id,
+    registration_date,
+    AVG(total_amount) AS avg_order_value
+  FROM customers c
+  JOIN orders o
+    ON c.customer_id = o.customer_id
+  GROUP BY c.customer_id, registration_date
+  HAVING AVG(total_amount) > 1636
+)
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  COUNT(*) AS good_customers
+FROM good_customers
+GROUP BY DATE_TRUNC('week', registration_date)
+ORDER BY DATE_TRUNC('week', registration_date);
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/800edd96-c077-4100-afce-61cfeea6b2fd)
+
+As you can see, we put the query from the previous step inside a CTE. In the outer query, in turn, we used the DATE_TRUNC() function to extract the year and week of each customer's registration date. We grouped the good customers into weekly cohorts and counted the number of customers in each cohort.
+
+Exercise
+The template code contains the query that shows data about customers with orders greater than the general average (1905.9063). Use it to create a report which shows the number of good customers in quarterly registration cohorts. Display the following columns: quarter, and good_customers. Order the results by year and quarter.
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/bfc9734c-3c77-475a-b9b3-2a64c9ed044f)
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/bfa8f450-587c-4f18-89b1-8177af5f073f)
+
+## Additional Info
+Well done! We can also introduce more features into the previous report. We'll use these features to analyze if good customers have anything in common (other than high average order values). Check it out:
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/cdf6bb94-f792-423d-9678-40c44433dd04)
+
+WITH good_customers AS (
+  SELECT
+    c.customer_id,
+    registration_date,
+    c.channel_id,
+    AVG(total_amount) AS avg_order_value
+  FROM customers c
+  JOIN orders o
+    ON c.customer_id = o.customer_id
+  GROUP BY
+    c.customer_id,
+    registration_date,
+    c.channel_id
+  HAVING AVG(total_amount) > 1636
+)
+
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  channel_id,
+  COUNT(*) AS good_customers
+FROM good_customers
+GROUP BY
+  customer_id,
+  registration_date,
+  channel_id
+ORDER BY
+  customer_id,
+  registration_date;
+In the query above, we've added a new customer field in the CTE: the acquisition channel. We used the channel_id column from the inner query and showed it in the outer query to get additional information about customers.
+
+This way we can check if any channels are particularly good at attracting good customers. If we identify good channels, we can put more marketing efforts into these channels to attract even more good customers.
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/329dfd99-2f49-4629-abde-c54b77d33237)
+
+**Exercise** 
+We want to find out if there are any countries that are particularly good. The template code contains the query from the previous exercise. It shows the columns year, quarter, and good_customers. Extend the report so that it contains three columns: quarter, country, and good_customers. Order the results by year and quarter.
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/30b8e2a9-2dbe-486a-8438-0adc20d920f8)
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/4aeb2d97-2ac4-4504-9876-8def9d229b7f)
+
+**Exercise** 
+Find the number of good customers (defined as those with an average order value greater than 1500.00) in weekly registration and city cohorts (i.e., cohorts defined by both weekly registration and the customer's city). Show the following columns: week, city, and good_customers. Order the results by year and week.
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/daf5655c-76bc-4591-8e32-38d1fe3fc791)
+
+## Recap
+Perfect! It's time to wrap things up.
+
+To find the number of customers active within the last 30 days in weekly registration cohorts, use:
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/0ceb38fd-c604-49c5-bf7e-7cb56a8a2832)
+
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  COUNT(*) AS active_customers
+FROM customers
+WHERE CURRENT_DATE - last_order_date < INTERVAL '30' day
+GROUP BY DATE_TRUNC('week', registration_date)
+ORDER BY DATE_TRUNC('week', registration_date);
+
+To find the average order value in weekly registration cohorts, use:
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/5b580b3d-5dd1-474d-a216-b7beea8cdf55)
+
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  AVG(total_amount) AS average_order_value
+FROM customers c
+JOIN orders o
+  ON c.customer_id = o.customer_id
+GROUP BY DATE_TRUNC('week', registration_date)
+ORDER BY DATE_TRUNC('week', registration_date);
+
+To find the number of "good customers" in weekly registration cohorts, use:
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/2ce44c9f-a04c-4d82-ba8f-1497fe2203b8)
+
+WITH good_customers AS (
+SELECT
+  c.customer_id,
+  registration_date,
+  AVG(total_amount) AS avg_order_value
+FROM customers c
+JOIN orders o
+  ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, registration_date
+HAVING AVG(total_amount) > 1636
+)
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  COUNT(*) AS good_customers
+FROM good_customers
+GROUP BY DATE_TRUNC('week', registration_date)
+ORDER BY DATE_TRUNC('week', registration_date);
+
+Question 1
+
+**Exercise** 
+For each month of 2017, show the number of active customers in monthly registration cohorts. Define an active customer as a customer that has placed an order in the last 60 days. Show two columns: month and active_customers. Order the results by month.
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/78503c3f-3231-4fae-b3fa-615e8eac24b5)
+SELECT
+  DATE_TRUNC('MONTH',registration_date) AS month,
+  COUNT(*) AS active_customers
+FROM customers c
+WHERE DATE_TRUNC('year',registration_date) = '2017-01-01'
+	AND current_date - last_order_date < INTERVAL '60' DAY
+GROUP BY DATE_TRUNC('MONTH',registration_date)
+
+Question 2
+
+**Exercise** 
+Find the number of good customers in weekly registration cohorts. Define a good customer as a customer with an average order value above 1000.0. Show the following columns: week and good_customers. Order the results by year and week.
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/65782b5e-c5a0-4a16-b58d-ce06a9452e80)
+
+# customer churn/retention
+
+Welcome
+We're going to take a look at customer churn.
+
+Inevitably, customers will stop using our services at some point. There can be many reasons for this: they may want to go to our competitors, or they may simply no longer need our services. This phenomenon is called "customer churn." On the other hand, **"customer retention" is when we've succeeded in keeping a customer active during a given period.**
+
+It's not always easy to determine if a given customer has "churned." After all, customers don't usually explicitly tell us when they leave, especially in businesses like e-stores. Instead, we need to identify such customers ourselves and define our own churn criteria. Depending on the business type, you may want to use the last login date, the last purchase date, the last subscription renewal event, etc. Each business will approach customer churn differently.
+
+When you apply SQL patterns covered in this part to your own business, you should adapt the "churn" criteria in the SQL queries to match the ones used in your business.
+
+In this part, you'll learn how to compute the number of churned customers and how to prepare a customer retention chart. The customer retention chart might look like this:
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/0b4a1d59-d271-4c5c-9310-f79093018b36)
+
+For each weekly registration cohort, the chart shows the percentage of customers still active 30, 60, and 90 days after the registration date. Customer retention figures will inevitably decrease over time. Comparing these values can help us determine if our customers are leaving us too quickly.
+
+Now that we know what we're looking for, let's get started!
+
+## Counting churned customers
+Let's first define what we mean by a "churned customer." In our business, we'll define a churned customer as a customer who hasn't placed an order in more than 30 days. This definition will be a starting point – we'll use other criteria in some of the other examples too. In your own business, you can use criteria that fit your business better.
+
+The simplest question related to customer churn is:
+As of today, how many churned customers are there in total?
+Here's a query that will provide the answer:
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/ff793501-a30f-4e5b-a954-b6b25a91a5f8)
+SELECT COUNT(*) AS churned_customers
+FROM customers
+WHERE CURRENT_DATE - last_order_date > INTERVAL '30' day;
+
+In the WHERE clause, we used the difference between last_order_date and today. To get the current date, we used the CURRENT_DATE function.
+
+Exercise
+Out of customers registered in 2017, find the number of churned customers. Define a churned customer as one who hasn't placed an order in more than 60 days. Show the count in a column named churned_customers.
+
+Does this number seem large?
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/3068f427-f18e-48bc-a3f5-0e2e1b640b59)
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/dced57d5-fc74-4db8-bbf8-d415f101cb09)
+
+## Churned customers in weekly cohorts
+Perfect! We know how to count the total number of churned customers. Next, let's see how we can split that count into weekly registration cohorts. Take a look:
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/a9d61799-b64e-4095-9462-06731a2dfd1a)
+
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  COUNT(*) As churned_customers
+FROM customers
+WHERE CURRENT_DATE - last_order_date > INTERVAL '30' day
+GROUP BY DATE_TRUNC('week', registration_date)
+ORDER BY DATE_TRUNC('week', registration_date);
+As usual, we used the DATE_TRUNC() function to extract the week and year of users' registrations. This information is used in the GROUP BY clause to group customers into weekly signup cohorts.
+
+**Exercise** 
+Find the number of churned customers in monthly registration cohorts from 2017. In this exercise, churned customers are those who haven't placed an order in more than 45 days. Show the following columns: month and churned_customers. Order the results by month.
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/fad0ae67-4d49-45c3-871a-f37bcda602b8)
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/82ff6a63-c46b-4636-9c82-3510eb50401c)
+
+### Churned customers in weekly cohorts – exercise
+
+**Exercise** 
+Find the number of churned customers in weekly signup cohorts from 2017. In this exercise, churned customers are those who haven't placed an order in 30 days. Show the following columns: week and churned_customers. Order the results by week.
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/de1418b8-c964-4bed-ab13-d765aab7a81e)
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/5b9138d0-46a8-4379-a620-4216efe33b23)
+
+## Percentage of churned customers in weekly cohorts
+Good job! We already know how many churned customers there are in each registration cohort. However, we would like to compare the number of churned customers to the total number of customers in a given registration cohort. How can we do that? Let's look:
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/7f543ec2-9a8a-4e92-90de-74aad023442f)
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  COUNT(customer_id) AS all_customers,
+  COUNT(CASE WHEN CURRENT_DATE - last_order_date > INTERVAL '30' day THEN customer_id END) AS churned_customers,
+  COUNT(CASE WHEN CURRENT_DATE - last_order_date > INTERVAL '30' day THEN customer_id END) * 100.0 / COUNT(customer_id) AS churned_percentage
+FROM customers
+GROUP BY DATE_TRUNC('week', registration_date)
+ORDER BY DATE_TRUNC('week', registration_date);
+As you can see, we used COUNT(customer_id) to count all the customers in a given cohort. Then we used COUNT(CASE WHEN ...) to include only customers that placed an order no later than 30 days ago.
+
+Next, we calculated the percentage of churned customers in the cohort by dividing the number of churned customers by the number of all customers. **Note that we multiplied the numerator by 100.0 (of type numeric) and not 100 (of type integer) to avoid integer division**.
+
+Exercise
+Modify the template so that it shows the following columns: month, all_customers, churned_customers, and churned_percentage. Find the number of churned customers in monthly signup cohorts from 2017. In this exercise, churned customers are those who haven't placed an order in 45 days.
+
+Previously, we only saw churned customer counts with no reference to total customer counts. Now we can clearly see the relation between these figures. What do you think about the churn values? Are they high?
+SELECT
+  DATE_TRUNC('month', registration_date) AS month,
+  COUNT(customer_id) AS all_customers,
+  COUNT(CASE WHEN CURRENT_DATE - last_order_date > INTERVAL '45' day THEN customer_id END) AS churned_customers,
+  COUNT(CASE WHEN CURRENT_DATE - last_order_date > INTERVAL '45' day THEN customer_id END)*100.0/COUNT(customer_id) AS churned_percentage
+FROM customers
+WHERE registration_date >= '2017-01-01' AND registration_date < '2018-01-01'
+GROUP BY DATE_TRUNC('month', registration_date)
+ORDER BY DATE_TRUNC('month', registration_date);
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/f4ea6899-1e78-4f70-9acd-07d078a4d8c2)
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/3aa25fa7-c813-4d92-b650-1f7a8b2e6314)
+
+
+### Percentage of churned customers in weekly cohorts – exercise
+
+Exercise
+Find the percentage of churned customers in monthly signup cohorts. Show the following columns: month, all_customers, churned_customers, and churned_percentage. Define churned customers as those who have not ordered anything in the last 60 days. Sort the results by year and month.
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/900a57b1-e9c1-47f5-a291-3a5ab650f745)
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/c24fe9b3-f872-4fe6-9f41-7e42037a5e6a)
+
+# The customer retention chart
+Perfect! The last report we'll create will be a customer retention chart. For each weekly registration cohort, we want to see the percentage of customers still active 30, 60, and 90 days after the registration date. Take a look:
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/9456bf3c-8a4a-4b23-bf36-5cbeffef3b12)
+
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  COUNT(CASE
+    WHEN last_order_date - registration_date > INTERVAL '30' day
+    THEN customer_id
+  END) * 100.0 / COUNT(customer_id) AS percent_active_30d,
+  COUNT(CASE
+    WHEN last_order_date - registration_date > INTERVAL '60' day
+    THEN customer_id
+  END) * 100.0 / COUNT(customer_id) AS percent_active_60d,
+  COUNT(CASE
+    WHEN last_order_date - registration_date > INTERVAL '90' day
+    THEN customer_id
+  END) * 100.0 / COUNT(customer_id) AS percent_active_90d
+FROM customers
+GROUP BY DATE_TRUNC('week', registration_date)
+ORDER BY DATE_TRUNC('week', registration_date);
+Result:
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/57626165-3c93-476f-a8bf-0181979c1c3a)
+
+week	percent_active_30d	percent_active_60d	percent_active_90d
+2017-01-09 00:00:00	83.3333333333333333	83.3333333333333333	83.3333333333333333
+2017-01-16 00:00:00	60.0000000000000000	60.0000000000000000	60.0000000000000000
+2017-01-23 00:00:00	66.6666666666666667	66.6666666666666667	66.6666666666666667
+By looking at a single row, we can analyze a given signup cohort and see what percentage of customers were still active after one, two, or three months. Customer retention figures will inevitably decrease over time. Comparing these values can help us determine if our customers are leaving us too quickly.
+
+As you can see, we used the COUNT(CASE WHEN ...) construction three times, each time with a slightly different condition. Because of that, we can include multiple metrics in a single query. Other than this, the query used all the standard features we've already gotten to know.
+
+**Exercise** 
+Create a similar customer retention chart for weekly signup cohorts from 2017. Show the following columns: week, percent_active_10d, percent_active_30d, and percent_active_60d. Order the results by week.
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/d2d1e610-799c-431b-b19f-53bb79ee2dcb)
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/cd39bdb0-242c-4568-a293-93b096dd95fb)
+
+Customer retention chart – exercise
+Good job! One more exercise before we move on.
+
+Exercise
+Create a customer retention chart based on monthly signup cohorts for all years. It should have the following columns: 
+month
+percent_active_14d (the percentage of customers still active after 14 days).
+percent_active_30d (the percentage of customers still active after 30 days).
+Order the results by month.
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/ec9c7cc7-8d3b-4d4d-8566-7e8becc487b0)
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/0657082f-4f1a-4b8d-ad6d-a190fafc9ddd)
+
+# Summary
+Great! It's time to wrap things up. First, a quick review:
+
+To count the number of churned customers (defined as people who haven't placed an order in the last 30 days), use:
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/b868ce19-ce38-43f8-a991-95b915face47)
+SELECT COUNT(*)
+FROM customers
+WHERE CURRENT_DATE - last_order_date > INTERVAL '30' day;
+
+To count the number of churned customers in weekly registration cohorts, use:
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/1144ebc7-8bc0-4063-ae5b-5273490de42a)
+
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  COUNT(*) AS churned_customers
+FROM customers
+WHERE CURRENT_DATE - last_order_date > INTERVAL '30' day
+GROUP BY DATE_TRUNC('week', registration_date)
+ORDER BY DATE_TRUNC('week', registration_date);
+
+To calculate the percentage of churned customers in weekly registration cohorts, use:
+
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/97cc3ff5-cbab-48f6-b0d4-056dfb2e291a)
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  COUNT(CASE
+    WHEN CURRENT_DATE - last_order_date > INTERVAL '30' day
+    THEN customer_id
+  END) * 100.0 / COUNT(customer_id) AS churned_percentage
+FROM customers
+GROUP BY DATE_TRUNC('week', registration_date)
+ORDER BY DATE_TRUNC('week', registration_date);
+
+To create a customer retention chart, use:
+![image](https://github.com/mythilyram/Customer-behavior-analysis/assets/123518126/555e80f5-1fd0-4b9f-8048-7441dc48440e)
+SELECT
+  DATE_TRUNC('week', registration_date) AS week,
+  COUNT(CASE
+    WHEN last_order_date - registration_date > INTERVAL '30' day
+    THEN customer_id
+  END) * 100.0 / COUNT(customer_id) AS percent_active_30d,
+  COUNT(CASE
+    WHEN last_order_date - registration_date > INTERVAL '60' day
+    THEN customer_id
+  END) * 100.0 / COUNT(customer_id) AS percent_active_60d,
+  COUNT(CASE
+    WHEN last_order_date - registration_date > INTERVAL '90' day
+    THEN customer_id
+  END) * 100.0 / COUNT(customer_id) AS percent_active_90d
+FROM customers
+GROUP BY DATE_TRUNC('week', registration_date)
+ORDER BY DATE_TRUNC('week', registration_date);
+Okay, time for a short quiz!
